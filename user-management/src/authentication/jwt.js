@@ -1,9 +1,8 @@
-import jsonwebtoken from 'jsonwebtoken'
-import User from '../schema/userSchema'
+import jwt from 'jsonwebtoken'
+import User from '../schema/userSchema.js'
 const generateToken = (info)=>{
-    jwt.sign(
+   const token =  jwt.sign(
         {
-        id: info._id,
         email: info.email,
         username: info.username
     },
@@ -12,6 +11,7 @@ const generateToken = (info)=>{
      expiresIn: "1m"
     }
     )
+    return token
 }
 const auth =(req,res,next)=>{
     try{
@@ -20,7 +20,8 @@ const auth =(req,res,next)=>{
             return res.status(400).json({"error":"Unauthorized"})
         }
         const decode = jwt.verify(authHeader,process.env.JWT_TOKEN)
-        const user = User.findById(decode.id).select("-password")
+        const email = decode.email
+        const user = User.findOne({email}).select("-password")
         if(!user){
             res.status(404).json({"error":"User not found"})
         }
@@ -30,4 +31,4 @@ const auth =(req,res,next)=>{
         return res.status(500).json({"error":"Internal server error"})
     }
 }
-export {generateToken}
+export {generateToken,auth}

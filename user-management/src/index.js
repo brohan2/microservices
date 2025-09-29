@@ -9,6 +9,8 @@ const app = express();
 
 const PORT = process.env.PORT 
 
+app.use(express.json())
+
 app.get('/', (req, res) => {  
     res.send('User Management Service is running');
 });
@@ -16,6 +18,11 @@ app.get('/', (req, res) => {
 app.use("/api/user",userRouter)
 
 connectdb()
-app.listen(PORT, () => {  
+    .then(()=>{
+        app.listen(PORT, () => {  
     console.log(`User Management Service is listening on port ${PORT}`);
 });
+    })
+    .catch((err)=>{
+        console.log("Error connecting to server/database")
+    })

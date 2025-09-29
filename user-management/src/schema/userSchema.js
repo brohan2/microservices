@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
 
 const userSchema = new mongoose.Schema(
     {
@@ -8,5 +8,6 @@ const userSchema = new mongoose.Schema(
      }
 )
 const User = mongoose.model('User',userSchema)
+const TempUser = mongoose.model('TempUser',userSchema)
 
-export default User
+export  {User,TempUser}
