@@ -25,7 +25,7 @@ const auth =(req,res,next)=>{
         if(!user){
             res.status(404).json({"error":"User not found"})
         }
-        req.user = res.status(401).json({"id":user._id,"email":user.email,"username":user.username})
+        req.user = res.status(401).json({"id":user._id,"email":user.email,"username":user.username,"role":user.role})
         next()
     }catch(e){
         return res.status(500).json({"error":"Internal server error"})
