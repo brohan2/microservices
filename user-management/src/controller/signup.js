@@ -2,7 +2,7 @@ import User from '../schema/userSchema.js'
 import bcrypt from 'bcrypt'
 import {generateToken} from '../authentication/jwt.js'
 import z from 'zod'
-// import Redis from 'ioredis'
+import Redis from 'ioredis'
 import nodemailer from 'nodemailer'
 
 // const redis = new Redis()
@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
     secure:true,
     auth:{
         user:'campusconnectofficial9@gmail.com',
-        pass:'slyiukvhoubxerpx'
+        pass:process.env.APP_PASSWORD
     }
 })
 const sendOtp = async (email,otp)=>{
@@ -80,7 +80,7 @@ const signup = async (req,res)=>{
 const validateOTP = async (req,res)=>{
     const {otp_received,email}=req.body
     try{
-        // const strdata = await redis.get(`Pending_user':${email}`)
+        const strdata = await redis.get(`Pending_user':${email}`)
         if (!strdata){
              return res.status(400).json({ error: 'No signup request found or OTP expired' });
         }

@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import connectdb from './db/db-connection.js'
 import userRouter from './router/userRouter.js'
 import inviteRouter from './router/inviteRouter.js'
-
+import {redisConnection} from './twofactor/redis.js';
 
 dotenv.config();
 const app = express();
@@ -28,7 +28,7 @@ app.use("/api",inviteRouter)
 
 
 
-
+redisConnection()
 connectdb()
     .then(()=>{
         app.listen(PORT, () => {  

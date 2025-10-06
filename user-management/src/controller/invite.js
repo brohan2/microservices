@@ -1,6 +1,6 @@
 
 import { create } from "domain";
-import { isExistingUser, invitedUserCreate} from "../../db_adapter.js"
+import { isExistingUser, invitedUserCreate} from "../db_adapter.js"
 import User from '../schema/userSchema.js'
 
 const generateId = ()=>{
