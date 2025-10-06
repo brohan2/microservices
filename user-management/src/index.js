@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import connectdb from './db/db-connection.js'
 import userRouter from './router/userRouter.js'
+import inviteRouter from './router/inviteRouter.js'
 
 
 dotenv.config();
@@ -16,8 +17,17 @@ app.get('/', (req, res) => {
     res.send('User Management Service is running');
 });
 
+
+
+
+
 app.use("/api/user",userRouter)
-app.use("/api/invite",inviteRouter)
+
+// this is the router which handles invites
+app.use("/api",inviteRouter)
+
+
+
 
 connectdb()
     .then(()=>{
@@ -28,3 +38,4 @@ connectdb()
     .catch((err)=>{
         console.log("Error connecting to server/database")
     })
+

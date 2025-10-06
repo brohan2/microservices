@@ -4,12 +4,6 @@ import { lowercase } from "zod";
 const ProfileSchema = new mongoose.Schema({
   photoUrl: {type:String,default:null},
   phoneNumber: {type:String,default:null},
-  address: {
-    street: String,
-    city: String,
-    zip: String,
-    default:null
-  }
 });
 const userSchema = new mongoose.Schema(
     {
@@ -21,6 +15,7 @@ const userSchema = new mongoose.Schema(
             index:true,
             default:null
         },
+
         email:{
             type:String,
             required:true,
@@ -39,7 +34,7 @@ const userSchema = new mongoose.Schema(
         invited_by: { 
             type: mongoose.Schema.Types.ObjectId, 
             ref: 'User', 
-            required:true
+            
         },
         isVerified:{
             type:Boolean,
@@ -65,7 +60,17 @@ const userSchema = new mongoose.Schema(
         lastLogin:{
             type:Date,
             default:null
+        },
+        invite_id:{
+            type:String,
+            required:true,
+        },
+        invite_expiry:{
+            type:Date,
+            required:true,
+            default:Date.now()+24*60*60*1000
         }
+
     },{timestamps:true})
 const User = mongoose.model('User',userSchema)
 

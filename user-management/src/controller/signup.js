@@ -2,10 +2,10 @@ import User from '../schema/userSchema.js'
 import bcrypt from 'bcrypt'
 import {generateToken} from '../authentication/jwt.js'
 import z from 'zod'
-import Redis from 'ioredis'
+// import Redis from 'ioredis'
 import nodemailer from 'nodemailer'
 
-const redis = new Redis()
+// const redis = new Redis()
 const generateOTP = ()=>{
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -58,11 +58,11 @@ const signup = async (req,res)=>{
         const user_otp = generateOTP()
 
         const stagingData = Json.stringify({username,email,password,user_otp,otp_Expiry:Date.now()+60*1000})
-        await redis.set(`Pending_user ${email}`,stagingData,'EX',600)
+        // await redis.set(`Pending_user ${email}`,stagingData,'EX',600)
 
         await sendOtp(email,user_otp)
 
-        return res.status(200).json({"message":"Otp sent to email, please verify"})
+         res.status(200).json({"message":"Otp sent to email, please verify"})
         const hashed_password = await bcrypt.hash(password,10)
         const newUser = new User({
             username,
@@ -80,7 +80,7 @@ const signup = async (req,res)=>{
 const validateOTP = async (req,res)=>{
     const {otp_received,email}=req.body
     try{
-        const strdata = await redis.get(`Pending_user':${email}`)
+        // const strdata = await redis.get(`Pending_user':${email}`)
         if (!strdata){
              return res.status(400).json({ error: 'No signup request found or OTP expired' });
         }
@@ -97,7 +97,7 @@ const validateOTP = async (req,res)=>{
         })
         await newUser.save()
         const token = generateToken(newUser)
-        await redis.del(`pendingUser:${email}`);
+        // await redis.del(`pendingUser:${email}`);
 
         res.status(200).json({"message":"User registered successfully","token":token})
 

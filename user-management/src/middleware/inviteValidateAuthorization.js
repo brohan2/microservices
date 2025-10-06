@@ -1,8 +1,9 @@
 
 
+// this will validate if the current user role is eligible to give role which he/she is trying to give
 const validateAuthorization = async (req,res,next)=>{
-    const {inviteEmail,inviteRole} =req.body
-    const {role,email}=req.user
+    const {inviteRole} =req.body
+    const {role}=req.user
     if(role=="super_admin"){
         if(inviteRole=="site_admin" || inviteRole=="operator" || inviteRole=="client_admin"){
             req.authorized = true;
