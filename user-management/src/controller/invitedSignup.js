@@ -5,9 +5,9 @@ import { isExistingUser,invitedUserSignup } from "../db_adapter.js";
 import bcrypt from "bcrypt";
 import { createClient } from "redis";
 import nodemailer from "nodemailer";
-import { generateOTP } from "../twofactor/otp.js";
-import { sendOtp } from "../twofactor/mail.js";
-import {redis} from '../twofactor/redis.js'
+import { generateOTP } from "../utilitis/otp.js";
+import { sendOtp } from "../utilitis/mail.js";
+import {redis} from '../utilitis/redis.js'
 
 
 const signupValidation = z

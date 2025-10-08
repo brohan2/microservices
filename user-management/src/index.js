@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import connectdb from './db/db-connection.js'
 import userRouter from './router/userRouter.js'
 import inviteRouter from './router/inviteRouter.js'
-import {redisConnection} from './twofactor/redis.js';
+import {redisConnection} from './utilitis/redis.js';
 
 dotenv.config();
 const app = express();

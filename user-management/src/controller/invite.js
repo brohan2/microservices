@@ -27,8 +27,8 @@ const invite = async (req,res)=>{
         const splitmail = inviteEmail.split('@')
         const username = splitmail[0]
         invitedUserCreate({username,inviteEmail,inviteRole,email,id,invite_id},User)
-        // send notification
-
+        // send notification implementation here
+        
 
         return res.status(200).json({"message":"User saved successfully"})
     }catch(e){
