@@ -34,3 +34,8 @@ export const invitedUserSignup = async(data,db)=>{
         return false;
     }
 }
+export const getAllInvites = async (data,db)=>{
+    const users = await db.find({$and:[{invited_by:data.id},{role:data.irole}]})
+    console.log(users)
+    return users
+}

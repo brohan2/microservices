@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendOtp = async (email, content) => {
+export const sendEmail = async (email, content) => {
   await transporter.sendMail({
     from: "SocialLen",
     to: email,

@@ -4,6 +4,7 @@ import connectdb from './db/db-connection.js'
 import userRouter from './router/userRouter.js'
 import inviteRouter from './router/inviteRouter.js'
 import {redisConnection} from './utilitis/redis.js';
+import {initRabbitMQ} from './rabbitmq/setup.js'
 
 dotenv.config();
 const app = express();
@@ -29,6 +30,7 @@ app.use("/api",inviteRouter)
 
 
 redisConnection()
+await initRabbitMQ();
 connectdb()
     .then(()=>{
         app.listen(PORT, () => {  

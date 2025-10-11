@@ -3,6 +3,7 @@ import {auth} from '../authentication/jwt.js'
 import inviteValidatePayload from '../middleware/inviteValidatePayload.js'
 import inviteValidateAuthorization from '../middleware/inviteValidateAuthorization.js'
 import invite from '../controller/invite.js'
+import showinvites from '../controller/showinvites.js'
 const irouter = express.Router()
 
 // the router have multiple middlewares
@@ -14,5 +15,5 @@ const irouter = express.Router()
     invite - the actual logic where we save the pre details in database and request notification service
 */
 irouter.post('/invite',auth,inviteValidatePayload,inviteValidateAuthorization,invite)
-
+irouter.get('/inviteelist',auth,showinvites)
 export default irouter

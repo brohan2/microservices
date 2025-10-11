@@ -50,7 +50,7 @@ const invitedSignup = async (req, res) => {
 
     const checkExisting = await isExistingUser({ email, invite_id }, User);
     if (!checkExisting) {
-      return res.status(404).json({ error: "User not invited or found" });
+      return res.status(404).json({ error: "User not invited or already exists" });
     }
     if(checkExisting.isVerified){
         return res.status(400).json({error:"User already signed up, please login"})

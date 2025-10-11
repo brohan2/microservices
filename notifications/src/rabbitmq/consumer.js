@@ -1,6 +1,6 @@
 import amqp from "amqplib"
 import dotenv from "dotenv"
-import sendEmail from "../mail/notification_mail.js";
+import {sendEmail} from "../mail/notification_mail.js";
 dotenv.config()
 import { getChannel, getQueueName } from "../rabbitmq/setup.js";
 
