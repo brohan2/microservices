@@ -1,14 +1,25 @@
 import User from "../schema/userSchema.js";
 import z, { check } from "zod";
 import { generateToken } from "../authentication/jwt.js";
-import { isExistingUser,invitedUserSignup } from "../db_adapter.js";
+import {validateOtp} from "../authentication/validateOtp.js";
+import {validateTOTP} from "../authentication/validateTotp.js";
+import {
+  isExistingUser,
+  invitedUserSignup,
+  secretSetup,
+  EnableTotp,
+} from "../db_adapter.js";
 import bcrypt from "bcrypt";
 import { createClient } from "redis";
 import nodemailer from "nodemailer";
 import { generateOTP } from "../utilitis/otp.js";
 import { sendOtp } from "../utilitis/mail.js";
-import {redis} from '../utilitis/redis.js'
-
+import { redis } from "../utilitis/redis.js";
+import {
+  generateTOTPSecret,
+  generateQRCode,
+  verifyTOTPToken,
+} from "../utilitis/totp.js";
 
 const signupValidation = z
   .object({
@@ -21,7 +32,6 @@ const signupValidation = z
     path: ["confirmpassword"],
     error: "Password not matched",
   });
-
 
 const invitedSignup = async (req, res) => {
   try {
@@ -50,13 +60,18 @@ const invitedSignup = async (req, res) => {
 
     const checkExisting = await isExistingUser({ email, invite_id }, User);
     if (!checkExisting) {
-      return res.status(404).json({ error: "User not invited or already exists" });
+      return res
+        .status(404)
+        .json({ error: "User not invited or already exists" });
     }
-    if(checkExisting.isVerified){
-        return res.status(400).json({error:"User already signed up, please login"})
+    if (checkExisting.isVerified) {
+      return res
+        .status(400)
+        .json({ error: "User already signed up, please login" });
     }
+    // OTP VALIDATION
     if (verification_preference == "otp") {
-      //otp logic
+      // OTP logic
       const user_otp = generateOTP();
 
       const stagingData = JSON.stringify({
@@ -67,55 +82,90 @@ const invitedSignup = async (req, res) => {
         user_otp,
         otp_Expiry: Date.now() + 60 * 10000,
       });
-    
+
       await redis.set(`Pending_user:${email}`, stagingData, "EX", 600);
 
       await sendOtp(email, user_otp);
       return res.status(200).json({ message: "Otp sent to email" });
-    } else if (verification_preference == "totp") {
+    } 
+    // TOTP Logic
+    else if (verification_preference == "totp") {
+      try {
+        const hashed_password = await bcrypt.hash(password, 10);
+        const updated_user = await invitedUserSignup(
+          { email, hashed_password, username, twofactor:"totp" },
+          User
+        );
+        if(updated_user){
+        const { qrCodeDataUrl, secret } = await setupTOTP(email);
+        await secretSetup({ email, secret }, User);
+        return res.status(200).json({ messgae: "QR sent", QR: qrCodeDataUrl });
+        }
+      } catch (e) {
+        console.log(e);
+        return res.status(400).json({ error: "Unable to signup" });
+      }
     }
-    // we need to set the password, and update the user profile (verified, invite status etc)
-
-    // const token = generateToken({ email, password });
-    // return res.status(200).json({
-    //   message: "Login success",
-    //   token,
-    // });
   } catch (e) {
     console.log(e);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
-const validateOtp = async (req, res) => {
-  // in this we need to validate otp and update details to database
-  const { otp_received, email } = req.body;
-  try {
-    const strdata = await redis.get(`Pending_user:${email}`);
-    console.log(email)
-    console.log(strdata)
-    if (!strdata) {
+
+
+
+
+const otpsignup = async (req,res)=>{
+  try{
+    const {username,email,password,invite_id,user_otp,otp_Expiry} = req.data
+    const data = req.data
+    console.log("data:",data)
+    const hashed_password = await bcrypt.hash(data.password, 10);
+    const updated_user = await invitedUserSignup(
+      { email, hashed_password, username,twofactor:"otp" },
+      User
+    );
+    const tokenuser = { email, username };
+    const token = generateToken(tokenuser);
+    await redis
+      .del(`pendingUser:${email}`)
+      .then(
+        res
+          .status(200)
+          .json({ message: "User registered successfully", token: token })
+      );
+  }catch(e){
+    console.log(e)
+    res.status(500).json({error:"Signup failed"})
+  }
+}
+
+
+const totpsignup = async (req,res)=>{
+  try{
+    const verified = req.verified
+  if (verified) {
+      await EnableTotp({ email }, User);
+      return res.json({
+        success: true,
+        message: "TOTP token verified successfully",
+      });
+    } else {
       return res
         .status(400)
-        .json({ error: "No signup request found or OTP expired" });
+        .json({ success: false, message: "Invalid or expired TOTP token" });
+    }}
+    catch(e){
+      res.status(500).json({error:"internal server error"})
     }
-    const data = JSON.parse(strdata);
-    // console.log(data);
-    const username = data.username
-    if (data.user_otp !== otp_received)
-      return res.status(400).json({ error: "Invalid OTP" });
-    if (Date.now() > data.otp_Expiry)
-      return res.status(400).json({ error: "OTP expired" });
+}
 
-    const hashed_password = await bcrypt.hash(data.password, 10);
-    const updated_user = await invitedUserSignup({email,hashed_password,username},User)
-    const tokenuser ={email,username}
-    const token = generateToken(tokenuser);
-    await redis.del(`pendingUser:${email}`)
-    .then(
-     res
-      .status(200)
-      .json({ message: "User registered successfully", token: token }));
-  } catch (e) {
-    console.log(e);
-  }
+const setupTOTP = async (email) => {
+  const { secret, otpauthUrl } = generateTOTPSecret(email);
+  const qrCodeDataUrl = await generateQRCode(otpauthUrl);
+  return { qrCodeDataUrl, secret };
 };
-export {invitedSignup,validateOtp};
+
+
+
+export { invitedSignup, validateOtp, validateTOTP, otpsignup,totpsignup};
