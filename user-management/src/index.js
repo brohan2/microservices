@@ -5,6 +5,9 @@ import userRouter from './router/userRouter.js'
 import inviteRouter from './router/inviteRouter.js'
 import {redisConnection} from './utilitis/redis.js';
 import {initRabbitMQ} from './rabbitmq/setup.js'
+import swaggerUi from 'swagger-ui-express'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 dotenv.config();
 const app = express();
@@ -14,22 +17,33 @@ const PORT = process.env.PORT
 
 app.use(express.json())
 
+// Swagger UI serving openapi.yaml from repo root
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.resolve(__dirname, '..', '..');
+const OPENAPI_PATH = path.join(ROOT_DIR, 'openapi.yaml');
+
+app.get('/openapi.yaml', (req, res) => {
+    res.sendFile(OPENAPI_PATH);
+});
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(undefined, { swaggerUrl: '/openapi.yaml' }));
+
+// test
 app.get('/', (req, res) => { 
     res.send('User Management Service is running');
 });
 
 
-
-
-
+// this router will handle authentication
 app.use("/api/user",userRouter)
 
 // this is the router which handles invites
 app.use("/api",inviteRouter)
 
-
-
+// redis connection for otp
 redisConnection()
+
+// rabbitMQ as messaging queue between microservices
 await initRabbitMQ();
 connectdb()
     .then(()=>{

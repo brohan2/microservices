@@ -41,7 +41,7 @@ const invite = async (req, res) => {
     const username = splitmail[0];
 
     //invoking invite user which will create a user with inviteEmail and set status as pending
-    invitedUserCreate(
+   await invitedUserCreate(
       { username, inviteEmail, inviteRole, email, id, invite_id },
       User
     );

@@ -1,0 +1,404 @@
+openapi: 3.0.3
+info:
+  title: MicroServices - User Management APIs
+  version: 1.0.0
+  description: |
+    OpenAPI specification for the user-management service and related invite flows.
+    This spec documents the HTTP endpoints currently present in the codebase.
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Signup
+  - name: Invites
+
+paths:
+  /:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service is running
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: User Management Service is running
+
+  /api/user/login:
+    post:
+      tags: [Auth]
+      summary: Begin login verification
+      description: |
+        Validates user credentials and indicates the required verification step.
+        - If user has OTP 2FA, returns validationType "otp" and sends an email OTP.
+        - If user has TOTP 2FA, returns validationType "totp" and expects a TOTP token in the next step.
+        - If user has no 2FA (e.g., super_admin), returns a JWT token directly.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login step determined
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/LoginOtpStepResponse'
+                  - $ref: '#/components/schemas/LoginTotpStepResponse'
+                  - $ref: '#/components/schemas/LoginSuccessResponse'
+        '400':
+          description: Invalid credentials or formatting
+
+  /api/user/validateotplogin:
+    post:
+      tags: [Auth]
+      summary: Complete login via OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpValidationRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccessResponse'
+        '400':
+          description: Invalid or expired OTP
+
+  /api/user/validatetotplogin:
+    post:
+      tags: [Auth]
+      summary: Complete login via TOTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TotpValidationRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccessResponse'
+        '400':
+          description: Invalid TOTP
+
+  /api/user/invitedsignup:
+    patch:
+      tags: [Signup]
+      summary: Start invited user signup
+      description: |
+        Starts signup for an invited user. Depending on `verification_preference`:
+        - `otp`: Sends an OTP email and stores data in Redis for later confirmation.
+        - `totp`: Immediately creates the user with TOTP enabled and returns a QR code data URL to enroll in an authenticator app.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvitedSignupRequest'
+      responses:
+        '200':
+          description: Signup progression
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/OtpInitiatedResponse'
+                  - $ref: '#/components/schemas/TotpQrResponse'
+        '400':
+          description: Validation failure or unable to signup
+        '404':
+          description: User not invited or already exists
+
+  /api/user/validateotpsignup:
+    patch:
+      tags: [Signup]
+      summary: Complete invited signup via OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpValidationRequest'
+      responses:
+        '200':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignupSuccessResponse'
+        '400':
+          description: Invalid or expired OTP
+
+  /api/user/validatetotpsignup:
+    patch:
+      tags: [Signup]
+      summary: Complete invited signup via TOTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TotpValidationRequest'
+      responses:
+        '200':
+          description: TOTP verified and enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotpEnabledResponse'
+        '400':
+          description: Invalid or expired TOTP
+
+  /api/invite:
+    post:
+      tags: [Invites]
+      summary: Invite a user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteRequest'
+      responses:
+        '200':
+          description: Invitation accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteAcceptedResponse'
+        '400':
+          description: User already exists
+        '401':
+          description: Unauthorized or not permitted to invite for the given role
+        '500':
+          description: Failed to send message to queue
+
+  /api/inviteelist:
+    get:
+      tags: [Invites]
+      summary: List invites created by current user filtered by role
+      description: Returns users invited by the authenticated user with the specified role.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: irole
+          schema:
+            type: string
+            enum: [super_admin, site_admin, operator, client_admin, client_user]
+          required: true
+          description: Invite role to filter by
+      responses:
+        '200':
+          description: Invites list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invite:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InviteeUser'
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+
+    LoginOtpStepResponse:
+      type: object
+      properties:
+        validationType:
+          type: string
+          enum: [otp]
+        message:
+          type: string
+      example:
+        validationType: otp
+        message: Otp sent to email
+
+    LoginTotpStepResponse:
+      type: object
+      properties:
+        validationType:
+          type: string
+          enum: [totp]
+        message:
+          type: string
+      example:
+        validationType: totp
+        message: User verified, TOTP required
+
+    LoginSuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        token:
+          type: string
+      example:
+        message: User login successfull
+        token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    OtpValidationRequest:
+      type: object
+      required: [email, otp_received]
+      properties:
+        email:
+          type: string
+          format: email
+        otp_received:
+          type: string
+
+    TotpValidationRequest:
+      type: object
+      required: [email, token]
+      properties:
+        email:
+          type: string
+          format: email
+        token:
+          type: string
+
+    InvitedSignupRequest:
+      type: object
+      required: [username, email, password, confirmpassword, invite_id, verification_preference]
+      properties:
+        username:
+          type: string
+          minLength: 3
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        confirmpassword:
+          type: string
+          minLength: 6
+        invite_id:
+          type: string
+        verification_preference:
+          type: string
+          enum: [otp, totp]
+
+    OtpInitiatedResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      example:
+        message: Otp sent to email
+
+    TotpQrResponse:
+      type: object
+      properties:
+        messgae:
+          type: string
+          description: Note the existing misspelling in implementation (messgae)
+        QR:
+          type: string
+          description: Data URL containing the QR code for TOTP enrollment
+      example:
+        messgae: QR sent
+        QR: data:image/png;base64,iVBORw0KGgoAAAANSUhEUg...
+
+    SignupSuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        token:
+          type: string
+      example:
+        message: User registered successfully
+        token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    InviteRequest:
+      type: object
+      required: [inviteEmail, inviteRole]
+      properties:
+        inviteEmail:
+          type: string
+          format: email
+        inviteRole:
+          type: string
+          enum: [super_admin, site_admin, operator, client_admin, client_user]
+
+    InviteAcceptedResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      example:
+        message: Email request sent to queue
+
+    InviteeUser:
+      type: object
+      description: Minimal snapshot of invited user as stored in DB
+      properties:
+        _id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+        invited_by:
+          type: string
+        invite_id:
+          type: string
+        isVerified:
+          type: boolean
+        invite_status:
+          type: string
+          enum: [pending, accepted, expired]
+        invitedAt:
+          type: string
+          format: date-time
+        inviteAcceptedAt:
+          type: string
+          format: date-time
+        lastLogin:
+          type: string
+          format: date-time
+
+
