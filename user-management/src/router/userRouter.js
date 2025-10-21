@@ -4,10 +4,6 @@ import {invitedSignup,validateOtp,validateTOTP,otpsignup,totpsignup} from '../co
 const router = express.Router()
 import {login,verification} from '../controller/login.js'
 
-// router.post('/signup',signup)
-// router.post('/login',signin)
-
-
 // this will signup the invited users
 router.patch('/invitedsignup',invitedSignup)
 
@@ -26,4 +22,9 @@ router.post('/validateotplogin',validateOtp,login)
 
 // this will validate user using totp
 router.post('/validatetotplogin',validateTOTP,login)
+
+
+// router.get('/profile')
+// router.patch('/forgotpassword')
+// router.patch('/changeMFA')
 export default router

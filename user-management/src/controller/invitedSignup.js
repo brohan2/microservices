@@ -144,11 +144,15 @@ const otpsignup = async (req,res)=>{
 const totpsignup = async (req,res)=>{
   try{
     const verified = req.verified
+    const {email}=req.user
   if (verified) {
       await EnableTotp({ email }, User);
+      const token = generateToken({email});
+
       return res.json({
         success: true,
         message: "TOTP token verified successfully",
+        token: token,
       });
     } else {
       return res
@@ -156,6 +160,7 @@ const totpsignup = async (req,res)=>{
         .json({ success: false, message: "Invalid or expired TOTP token" });
     }}
     catch(e){
+      console.log(e)
       res.status(500).json({error:"internal server error"})
     }
 }

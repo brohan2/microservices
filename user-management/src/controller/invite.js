@@ -24,25 +24,31 @@ const createInviteId = (inviteEmail) => {
 
 //this will invite user
 const invite = async (req, res) => {
-  const { inviteEmail, inviteRole } = req.body;
+  const data = req.data;
+  const { inviteEmail, inviteRole} = data
   const { email, id } = req.user;
-
+  const {organisation} = req.body
+  console.log(data)
+  if(inviteRole==="client_admin"){
+     console.log(organisation)
+     if(!organisation){
+      return res.status(400).json({"error":"Organisation required for client admin"})
+     }
+  }
   try {
-    const invite_id = createInviteId(inviteEmail);
-
+    
     // checking if invited user is already exist in our database
     const isExists = await isExistingUser({ email: inviteEmail }, User);
     if (isExists) {
       return res.status(400).json({ error: "User already exits" });
     }
-
-
+    const invite_id = createInviteId(inviteEmail);
     const splitmail = inviteEmail.split("@");
     const username = splitmail[0];
 
     //invoking invite user which will create a user with inviteEmail and set status as pending
    await invitedUserCreate(
-      { username, inviteEmail, inviteRole, email, id, invite_id },
+      { username, inviteEmail, inviteRole, email, id, invite_id ,organisation},
       User
     );
 

@@ -7,6 +7,7 @@ export const invitedUserCreate = async (data, db) => {
     role: data.inviteRole,
     invited_by: data.id,
     invite_id: data.invite_id,
+    organisation:data.organisation
   });
   await newUser.save();
 };
@@ -46,7 +47,7 @@ export const getAllInvites = async (data, db) => {
   const {id,irole}= data
   const users = await db.find({
     $and: [{ invited_by: id }, { role: irole }],
-  });
+  }).select('username email invite_status');
   console.log(users);
   return users;
 };

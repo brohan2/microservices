@@ -28,7 +28,8 @@ const login = async (req, res) => {
 
 const verification = async (req,res,next)=>{
       try{
-        const { email, password } = req.body;
+    const { email, password } = req.body;
+     
     const validation = loginValidation.safeParse({email,password})
     if(!validation.success){
         return res.status(400).json({"error":"Email or password formating is bad"})
@@ -73,6 +74,7 @@ const verification = async (req,res,next)=>{
       }
       }catch(e){
         console.log(e)
+        return res.status(500).json({"error":"Internal server error"})
       }
 }
 export {login,verification}

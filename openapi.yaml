@@ -15,7 +15,7 @@ tags:
   - name: Auth
   - name: Signup
   - name: Invites
-
+  
 paths:
   /:
     get:

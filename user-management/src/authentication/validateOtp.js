@@ -15,6 +15,7 @@ export const validateOtp = async (req, res,next) => {
     }
     const data = JSON.parse(strdata);
     const username = data.username;
+    console.log(data.user_otp,otp_received)
     if (data.user_otp !== otp_received)
       return res.status(400).json({ error: "Invalid OTP" });
     if (Date.now() > data.otp_Expiry)

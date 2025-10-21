@@ -15,7 +15,7 @@ const validatePayload = async (req,res,next)=>{
         return res.status(422).json({ errors: result.error.errors });
     }
     
-    req.body = result.data
+    req.data = result.data
     next();
 }
 export default validatePayload
