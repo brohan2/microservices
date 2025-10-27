@@ -1,4 +1,4 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 import { lowercase } from "zod";
 
 const ProfileSchema = new mongoose.Schema({
@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
     invited_by: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Types.ObjectId,
       ref: "User",
     },
     isVerified: {

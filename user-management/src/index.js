@@ -8,7 +8,7 @@ import {initRabbitMQ} from './rabbitmq/setup.js'
 import swaggerUi from 'swagger-ui-express'
 import path from 'path'
 import { fileURLToPath } from 'url'
-
+import cors from 'cors'
 dotenv.config();
 const app = express();
 
@@ -16,7 +16,9 @@ const app = express();
 const PORT = process.env.PORT 
 
 app.use(express.json())
-
+// Allow everything CORS
+app.use(cors())
+// Accept CORS preflight for all routes
 // Swagger UI serving openapi.yaml from repo root
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,14 +46,20 @@ app.use("/api",inviteRouter)
 redisConnection()
 
 // rabbitMQ as messaging queue between microservices
-await initRabbitMQ();
-connectdb()
-    .then(()=>{
-        app.listen(PORT, () => {  
-    console.log(`User Management Service is listening on port ${PORT}`);
-});
-    })
-    .catch((err)=>{
-        console.log("Error connecting to server/database")
-    })
+if (process.env.NODE_ENV !== 'test') {
+  (async () => {
+    await initRabbitMQ();
+    connectdb()
+      .then(() => {
+        app.listen(PORT, () => {
+          console.log(`User Management Service is listening on port http://localhost:${PORT}`);
+        });
+      })
+      .catch((err) => {
+        console.log("Error connecting to server/database");
+      });
+  })();
+}
+
+export default app;
 

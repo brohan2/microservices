@@ -12,7 +12,8 @@ const validatePayload = async (req,res,next)=>{
     const {inviteEmail,inviteRole} = req.body
     const result = validator.safeParse({inviteEmail,inviteRole})
       if (!result.success) {
-        return res.status(422).json({ errors: result.error.errors });
+        const errors = result.error?.issues || result.error?.errors || [];
+        return res.status(422).json({ errors });
     }
     
     req.data = result.data

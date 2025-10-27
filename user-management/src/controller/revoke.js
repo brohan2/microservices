@@ -1,7 +1,7 @@
 
 
-const revokeinvite = async (req,res)=>{
+// const revokeinvite = async (req,res)=>{
+//     const {email}
+// }
 
-}
-
-export default revokeinvite
+// export default revokeinvite

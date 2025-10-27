@@ -51,10 +51,10 @@ const invitedSignup = async (req, res) => {
     });
 
     if (!verifydetails.success) {
-      console.log(verifydetails.error());
+      console.log(verifydetails.error);
       return res.status(403).json({
-        message: verifydetails.error(),
-        errors: verifydetails.error(),
+        message: "Validation failed",
+        errors: verifydetails.error?.issues || [],
       });
     }
 

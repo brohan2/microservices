@@ -1,81 +1,72 @@
-// import User from './src/schema/userSchema.js'
+/**
+ * Database Adapter Module
+ * Provides database operations using the adapter pattern
+ * Currently supports MongoDB only
+ */
+
+import { DatabaseFactory } from "./adapters/DatabaseFactory.js";
+
+// Get the MongoDB adapter instance
+const dbAdapter = DatabaseFactory.getAdapter("mongodb");
+
+/**
+ * Create an invited user
+ * @param {Object} data - User data including username, inviteEmail, inviteRole, id, invite_id, organisation
+ * @param {Object} db - Database model (kept for backward compatibility, not used)
+ * @returns {Promise<Object>} Created user
+ */
+
 
 export const invitedUserCreate = async (data, db) => {
-  const newUser = new db({
-    username: data.username,
-    email: data.inviteEmail,
-    role: data.inviteRole,
-    invited_by: data.id,
-    invite_id: data.invite_id,
-    organisation:data.organisation
-  });
-  await newUser.save();
+  return await dbAdapter.invitedUserCreate(data);
 };
 
-
+/**
+ * Check if a user exists
+ * @param {Object} info - Search criteria (e.g., { email: "user@example.com" })
+ * @param {Object} db - Database model (kept for backward compatibility, not used)
+ * @returns {Promise<Object|false>} User if exists, false otherwise
+ */
 export const isExistingUser = async (info, db) => {
-  const existingUser = await db.findOne(info);
-  if (existingUser) {
-    return existingUser;
-  } else {
-    return false;
-  }
+  return await dbAdapter.isExistingUser(info);
 };
+
+/**
+ * Sign up an invited user (complete registration)
+ * @param {Object} data - User signup data including email, username, hashed_password, twofactor
+ * @param {Object} db - Database model (kept for backward compatibility, not used)
+ * @returns {Promise<Object|false>} Updated user or false if failed
+ */
 export const invitedUserSignup = async (data, db) => {
-  const update = db.findOneAndUpdate(
-    { email: data.email },
-    {
-      $set: {
-        username: data.username,
-        password: data.hashed_password,
-        isVerified: true,
-        invite_status: "accepted",
-        inviteAcceptedAt: Date.now(),
-        lastLogin: Date.now(),
-        twofactor:data.twofactor,
-      },
-    },
-    { new: true, runValidators: true }
-  );
-  if (update) {
-    return update;
-  } else {
-    return false;
-  }
+  return await dbAdapter.invitedUserSignup(data);
 };
+
+/**
+ * Get all invites for a user
+ * @param {Object} data - Filter criteria including id (inviter_id) and irole (invite role)
+ * @param {Object} db - Database model (kept for backward compatibility, not used)
+ * @returns {Promise<Array>} List of invites
+ */
 export const getAllInvites = async (data, db) => {
-  const {id,irole}= data
-  const users = await db.find({
-    $and: [{ invited_by: id }, { role: irole }],
-  }).select('username email invite_status');
-  console.log(users);
-  return users;
+  return await dbAdapter.getAllInvites(data);
 };
 
+/**
+ * Setup TOTP secret for a user
+ * @param {Object} data - Secret setup data including email and secret
+ * @param {Object} db - Database model (kept for backward compatibility, not used)
+ * @returns {Promise<Object>} Updated user
+ */
 export const secretSetup = async (data, db) => {
-  const { secret } = data;
-  const user = await db.findOneAndUpdate(
-    { email: data.email },
-    {
-      $set: {
-        totpSecret: secret,
-      },
-    },
-    { new: true, runValidators: true }
-  );
-  return user
+  return await dbAdapter.secretSetup(data);
 };
 
-export const EnableTotp = async (data,db)=>{
-    const {email}=data;
-    const user = await db.findOneAndUpdate(
-        {email:email},
-        {
-            $set:{
-                totpEnabled:true
-            }
-        },
-        { new: true, runValidators: true }
-    );
-    return user
-}
+/**
+ * Enable TOTP for a user
+ * @param {Object} data - Enable TOTP data including email
+ * @param {Object} db - Database model (kept for backward compatibility, not used)
+ * @returns {Promise<Object>} Updated user
+ */
+export const EnableTotp = async (data, db) => {
+  return await dbAdapter.EnableTotp(data);
+};

@@ -8,6 +8,7 @@ import {
 
 export const validateTOTP = async (req, res,next) => {
   const { email, token } = req.body;
+  console.log(email,token)
   const user = await isExistingUser({ email }, User);
   console.log(user);
   if (!user)

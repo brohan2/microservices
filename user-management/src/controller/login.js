@@ -65,7 +65,7 @@ const verification = async (req,res,next)=>{
       return res.status(200).json({ validationType:"otp", message: "Otp sent to email" });
     }
     else if(verificationtype=="totp"){
-        return res.status(200).json({validationType:"totp",message:"User verified, TOTP required"})
+        return res.status(200).json({validationType:"totp",message:"User verified, TOTP required",email:email,role:existing.role})
     }
       else{
         if(existing.role == "super_admin"){
