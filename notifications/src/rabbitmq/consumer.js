@@ -16,7 +16,12 @@ export const consumeQueue = async () => {
       console.log("Received message:", data);
 
       try {
-        await sendEmail(data.to, data.content);
+        await sendEmail(
+          data.to,
+          data.content,
+          data.html,
+          data.subject
+        );
         channel.ack(msg);
         console.log("Email sent and message acknowledged");
       } catch (err) {

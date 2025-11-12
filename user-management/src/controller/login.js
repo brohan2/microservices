@@ -2,7 +2,7 @@ import z from "zod";
 import { isExistingUser } from "../db_adapter.js";
 import User from '../schema/userSchema.js'
 import bcrypt from 'bcrypt'
-import {generateToken} from '../authentication/jwt.js'
+import {generateToken, generateRefreshToken, verifyRefreshToken} from '../authentication/jwt.js'
 import { sendOtp } from "../utilitis/mail.js";
 import {redis} from '../utilitis/redis.js'
 import {validateOtp} from "../authentication/validateOtp.js";
@@ -17,8 +17,18 @@ const loginValidation = z.object({
 const login = async (req, res) => {
     try{
         const {email} = req.user || req.body
+        const data = req.data
+        console.log(`data is ${data}`)
         const token = generateToken({email});
-        return res.status(200).json({"message":"User login successfull",token:token})
+        const refreshToken = generateRefreshToken({email});
+        if (data && email) {
+          try {
+            await redis.del(`Pending_user:${email}`);
+          } catch (e) {
+            console.log("OTP key deletion failed (non-fatal):", e);
+          }
+        }
+        return res.status(200).json({"message":"User login successfull",token:token, refreshToken})
     }
     catch (e) {
     console.log(e)
@@ -62,7 +72,7 @@ const verification = async (req,res,next)=>{
       await redis.set(`Pending_user:${email}`, stagingData, "EX", 600);
 
       await sendOtp(email, user_otp);
-      return res.status(200).json({ validationType:"otp", message: "Otp sent to email" });
+      return res.status(200).json({ validationType:"otp", message: "Otp sent to email",email:email,role:existing.role});
     }
     else if(verificationtype=="totp"){
         return res.status(200).json({validationType:"totp",message:"User verified, TOTP required",email:email,role:existing.role})
@@ -78,3 +88,4 @@ const verification = async (req,res,next)=>{
       }
 }
 export {login,verification}
+

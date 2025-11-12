@@ -1,6 +1,6 @@
 import User from "../schema/userSchema.js";
 import z, { check } from "zod";
-import { generateToken } from "../authentication/jwt.js";
+import { generateToken, generateRefreshToken } from "../authentication/jwt.js";
 import {validateOtp} from "../authentication/validateOtp.js";
 import {validateTOTP} from "../authentication/validateTotp.js";
 import {
@@ -127,12 +127,13 @@ const otpsignup = async (req,res)=>{
     );
     const tokenuser = { email, username };
     const token = generateToken(tokenuser);
+    const refreshToken = generateRefreshToken(tokenuser);
     await redis
-      .del(`pendingUser:${email}`)
+      .del(`Pending_user:${email}`)
       .then(
         res
           .status(200)
-          .json({ message: "User registered successfully", token: token })
+          .json({ message: "User registered successfully", token: token, refreshToken })
       );
   }catch(e){
     console.log(e)
@@ -148,11 +149,13 @@ const totpsignup = async (req,res)=>{
   if (verified) {
       await EnableTotp({ email }, User);
       const token = generateToken({email});
+      const refreshToken = generateRefreshToken({email});
 
       return res.json({
         success: true,
         message: "TOTP token verified successfully",
         token: token,
+        refreshToken
       });
     } else {
       return res

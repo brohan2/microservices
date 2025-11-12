@@ -2,24 +2,42 @@ import { create } from "domain";
 import { isExistingUser, invitedUserCreate } from "../db_adapter.js";
 import User from "../schema/userSchema.js";
 import {sendToQueue} from '../rabbitmq/producer.js'
+import { uuidv7 } from "uuidv7";
 
 
-// this will generate unique number
-const generateId = () => {
-  return Math.floor(10000 + Math.random() * 90000).toString();
-};
 // this will return the mail content that should be sent to invited users
-const getInviteMessage=(inviteEmail,inviteRole,invite_id)=>{
-    const msg = `Hello, you have been invited as ${inviteRole}. Please use below invite Id and link to accept the invite.
-    Invite id : ${invite_id}. Link: http://localhost:8000/id=${invite_id}`
-    return msg
-}
-// this will create a unique inviteid
-const createInviteId = (inviteEmail) => {
-  const num = generateId();
-  const parts = inviteEmail.split("@");
-  const inviteId = num.slice(0, 3) + parts[0] + num.slice(3);
-  return inviteId;
+const getInviteMessage = (inviteEmail, inviteRole, invite_id) => {
+  const baseUrl = process.env.INVITE_BASE_URL || "http://localhost:8000";
+  const inviteLink = `${baseUrl}/id=${invite_id}`;
+  const msg = `Hello,
+
+You have been invited as ${inviteRole}. Use the invite ID and link below to accept the invite.
+
+Invite ID: ${invite_id}
+Invite Link: ${inviteLink}
+
+If you did not expect this email, you can ignore it.`;
+  return { text: msg, link: inviteLink };
+};
+
+const getInviteMessageHTML = (subject, role, inviteId, inviteLink) => {
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px;">
+    <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e6e8eb;border-radius:8px;overflow:hidden;">
+      <div style="padding:20px 24px;border-bottom:1px solid #f0f2f5;">
+        <h2 style="margin:0;color:#111827;font-size:18px;">${subject}</h2>
+      </div>
+      <div style="padding:24px;color:#374151;line-height:1.6;">
+        <p style="margin:0 0 12px 0;">You have been invited as <strong>${role}</strong>.</p>
+        <p style="margin:0 0 12px 0;">Use the invite ID below and click the button to proceed:</p>
+        <p style="margin:0 0 16px 0;font-size:20px;font-weight:700;letter-spacing:1px;color:#111827;">${inviteId}</p>
+        <p style="margin:0 0 16px 0;">
+          <a href="${inviteLink}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;">Accept Invitation</a>
+        </p>
+        <p style="margin:0;color:#6b7280;">If you did not expect this email, you can ignore it.</p>
+      </div>
+    </div>
+  </div>`;
 };
 
 //this will invite user
@@ -42,7 +60,7 @@ const invite = async (req, res) => {
     if (isExists) {
       return res.status(400).json({ error: "User already exits" });
     }
-    const invite_id = createInviteId(inviteEmail);
+    const invite_id = uuidv7();
     const splitmail = inviteEmail.split("@");
     const username = splitmail[0];
 
@@ -53,18 +71,26 @@ const invite = async (req, res) => {
     );
 
     // send email using RabbitMQ implementation 
-    const msg = getInviteMessage(inviteEmail,inviteRole,invite_id)
+    const subject = process.env.INVITE_EMAIL_SUBJECT || "SociaLen Invite";
+    const { text, link } = getInviteMessage(inviteEmail,inviteRole,invite_id)
+    const html = getInviteMessageHTML(subject, inviteRole, invite_id, link);
     try {
-      await sendToQueue({ to:inviteEmail, content:msg });
-      res.json({ message: "Email request sent to queue" });
+      await sendToQueue({ 
+        type: "invite",
+        to: inviteEmail, 
+        subject,
+        content: text,
+        html 
+      });
     } catch (error) {
       console.error("Error sending to queue:", error);
       res.status(500).json({ error: "Failed to send message to queue" });
+      return;
     }
-    return res.status(200).json({ message: "User saved successfully" });
+    return res.status(200).json({ message: "User saved successfully and email queued" });
   } catch (e) {
     console.log(e);
-    return res.staus(500).json({ error: "internal server error" });
+    return res.status(500).json({ error: "internal server error" });
   }
 };
 

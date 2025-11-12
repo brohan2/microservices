@@ -4,7 +4,7 @@ import inviteValidatePayload from '../middleware/inviteValidatePayload.js'
 import inviteValidateAuthorization from '../middleware/inviteValidateAuthorization.js'
 import invite from '../controller/invite.js'
 import showinvites from '../controller/showinvites.js'
-// import revokeinvite from '../controller/revoke.js'
+import { revokeInvite } from '../controller/inviteManage.js'
 const irouter = express.Router()
 
 // the router have multiple middlewares
@@ -17,8 +17,7 @@ const irouter = express.Router()
 irouter.post('/invite',auth,inviteValidatePayload,inviteValidateAuthorization,invite)
 
 /* This will show the invitelist and status*/
-irouter.get('/inviteelist',auth,showinvites)
+irouter.post('/inviteelist',auth,showinvites)
+irouter.post('/invite/revoke', auth, revokeInvite)
 
-// irouter.post('/revokeinvite',auth,revokeAuthorization,revokeinvite)
-// irouter.post('/deleteinvite')
 export default irouter

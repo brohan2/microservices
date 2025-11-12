@@ -6,7 +6,7 @@ export const validateOtp = async (req, res,next) => {
   const { otp_received, email } = req.body;
   try {
     const strdata = await redis.get(`Pending_user:${email}`);
-    console.log(email);
+    console.log("mail is"+email);
     console.log(strdata);
     if (!strdata) {
       return res

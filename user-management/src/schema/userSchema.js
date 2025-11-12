@@ -73,7 +73,7 @@ const userSchema = new mongoose.Schema(
     invite_expiry: {
       type: Date,
       required: true,
-      default: Date.now() + 24 * 60 * 60 * 1000,
+      default: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
     },
     twofactor: {
       type: String,

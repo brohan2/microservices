@@ -9,6 +9,8 @@ import swaggerUi from 'swagger-ui-express'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import cors from 'cors'
+import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
 dotenv.config();
 const app = express();
 
@@ -18,6 +20,16 @@ const PORT = process.env.PORT
 app.use(express.json())
 // Allow everything CORS
 app.use(cors())
+app.use(helmet({
+  contentSecurityPolicy: false
+}))
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_MAX || 300),
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+app.use(limiter)
 // Accept CORS preflight for all routes
 // Swagger UI serving openapi.yaml from repo root
 const __filename = fileURLToPath(import.meta.url);

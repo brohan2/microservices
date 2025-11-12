@@ -12,7 +12,7 @@ describe('Notification Mail Service', () => {
     mockTransporter = {
       sendMail: jest.fn()
     };
-    nodemailer.createTransporter.mockReturnValue(mockTransporter);
+    nodemailer.createTransport.mockReturnValue(mockTransporter);
     jest.clearAllMocks();
   });
 
